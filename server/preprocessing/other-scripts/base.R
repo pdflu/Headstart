@@ -62,23 +62,23 @@ get_papers <- function(query, params, limit=100,
     } else {
     lang_query <- ""
   }
-  #Make sure that the abstract exists.
-  abstract_exists = "dcdescription:?"
   sortby_string = ifelse(params$sorting == "most-recent", "dcyear desc", "")
 
-  base_query <- paste(exact_query, lang_query, date_string, document_types, abstract_exists, collapse=" ")
+  base_query <- paste(exact_query, lang_query, date_string, document_types, collapse=" ")
 
   # execute search
-  (res_raw <- bs_search(hits=limit
-                        , query = base_query
-                        , fields = "dcdocid,dctitle,dcdescription,dcsource,dcdate,dcsubject,dccreator,dclink,dcoa,dcidentifier,dcrelation"
-                        , sortby = sortby_string))
+  # Make sure that the abstract exists via filter query (performance hit on first query, after that cached)
+  res_raw <- bs_search(hits=limit,
+                       query = base_query,
+                       fields = "dcdocid,dctitle,dcdescription,dcsource,dcdate,dcsubject,dccreator,dclink,dcoa,dcidentifier,dcrelation",
+                       sortby = sortby_string,
+                       fq="dcdescription:[* TO *]")
   res <- res_raw$docs
   if (nrow(res)==0){
     stop(paste("No results retrieved."))
   }
 
-  blog$info(paste("Query:", query, lang_query, date_string, document_types, abstract_exists, sep=" "));
+  blog$info(paste("Query:", query, lang_query, date_string, document_types, sep=" "));
 
   metadata = data.frame(matrix(nrow=length(res$dcdocid)))
 
