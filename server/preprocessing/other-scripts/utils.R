@@ -95,6 +95,6 @@ detect_error <- function(failed) {
   }
   # then return them as json list
   output$reason <- reason
-  output$status <- 'error'
+  output$status <- 'insufficient results'
   return(toJSON(output, auto_unbox = TRUE))
 }
