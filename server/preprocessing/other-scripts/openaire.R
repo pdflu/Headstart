@@ -189,7 +189,7 @@ fill_dois <- function(df) {
     candidates <- lapply(response, get_doi_candidates)
     dois <- mapply(check_distance, titles, candidates, USE.NAMES=FALSE)
   } else if (length(titles) == 1) {
-    response <- cr_works(flq=c('query.title'=titles))$data
+    response <- cr_works(flq=c('query.bibliographic'=titles))$data
     candidate_response = response[1,]
     dois <- check_distance(titles, candidate_response)
   } else {
