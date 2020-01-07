@@ -221,7 +221,7 @@ check_distance <- function(title, candidate) {
 queries <- function(titles){
   queries <- c()
   for (title in titles){
-    nq <- list('query.title'=title)
+    nq <- list('query.bibliographic'=title)
     queries <- c(queries, nq)
   }
   return (queries)
