@@ -281,7 +281,7 @@ export var headstart = StateMachine.create({
   events: [
     { name: "start",      from: "none",     to: "normal" },
     { name: "tomultiples", from: ["normal", "switchfiles"],   to: "multiples" },
-    { name: "tofile", from: ["normal", "switchfiles", "multiples"], to: "switchfiles"}
+    { name: "tofile", from: ["none", "normal", "switchfiles", "multiples"], to: "switchfiles"}
   ]
 
 });
