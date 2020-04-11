@@ -12,6 +12,8 @@ import { toFront } from 'helpers';
 import { canvas } from 'canvas';
 import { updateTags } from 'helpers';
 import { io } from 'io';
+import shave from 'shave';
+
 
 const paperTemplate = require("templates/map/paper.handlebars");
 
@@ -180,6 +182,13 @@ papers.drawPapers = function () {
                 return "none"
             }
         });
+        
+    article_metadata.select("#free-access-logo")
+            .style("display", function (d) {
+                if(d.free_access === false) {
+                    return "none";
+                }
+            });
     
     article_metadata.select("#outlink")
             .style("display", function (d) {
@@ -233,7 +242,7 @@ papers.drawDogEarPath = function (nodes) {
 // if the user clicks on the paper inside of a bubble,
 // it should zoom in. (behave same way when, only the bubble is clicked)
 papers.initPaperClickHandler = function () {
-    d3.selectAll(".paper_holder").on("click", function (d) {
+    d3.selectAll(".paper_holder, #article_metadata").on("click", function (d) {
         mediator.publish("paper_click", d);
     });
 };
@@ -776,7 +785,6 @@ papers.onWindowResize = function() {
 
       $("#area_title>h2").css("font-size", canvas.calcTitleFontSize());
       $("#area_title>h2").hyphenate(config.hyphenation_language);
-      $("#area_title_object>body").dotdotdot({wrap:"letter"});
 
       d3.selectAll("g.paper")
         .attr("transform", (d) => {

@@ -18,16 +18,35 @@
     margin-bottom: 10px;
 }
 
-#open-access-logo_list {
+#open-access-logo_list, #free-access-logo_list {
     background-color: white;
     color: $open-access;
     border: 1px solid $open-access;
     padding: 2px 4px;
     border-radius: 5px;
+    -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     font-size: 10px;
     vertical-align: top;
     font-weight: $fontweight400;
+}
+
+.tag {
+    background-color: white;
+    display: inline;
+    color: $medium-blue;
+    border: 1px solid $medium-blue;
+    padding: 2px 4px;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    font-size: 10px;
+    font-weight: $fontweight400;
+    margin-right: 3px;
+}
+
+.tags {
+    display: inline;
 }
 
 .dataset-tag {
@@ -36,6 +55,7 @@
     background-color: white;
     padding: 2px 4px;
     border-radius: 5px;
+    -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
 }
 
@@ -108,6 +128,7 @@
         padding: 5px;
         border-radius: 5px;
         -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
         color: $list_show_hide_button;
         border: 1px solid $list_show_hide_button;
         &:hover {
@@ -178,14 +199,21 @@
     padding-left: 0px;
     color: $list_abstract;
     font-weight: $fontweight400;
-    
+
     em {
         font-weight: $fontweight400;
         font-style: normal;
         background-color: $highlight-searchterm;
-        border-radius:4px;
+        border-radius: 4px;
+        -moz-border-radius: 4px;
+        -webkit-border-radius: 4px;
         padding: 2px;
     }
+}
+
+s.resulttype {
+    font-size: 12px;
+    margin-bottom: 10px;
 }
 
 #list_area, #list_keywords, #list_basic_classification, #list_ddc {
@@ -203,6 +231,17 @@
     }
 }
 
+.resulttype_tag {
+    font-weight: $fontweight800;
+}
+
+.resulttype {
+    font-size: 12px;
+    line-height: 120%;
+    margin-bottom: 10px;
+    margin-top: 5px;
+}
+
 .conceptgraph {
     margin-top: 5px;
     margin-bottom: 10px;
@@ -211,7 +250,7 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     font-size: 12px;
-    
+
     a {
         color: #f29e00;
         text-decoration: none;
@@ -232,9 +271,9 @@
 }
 
 .preview_image {
-     max-width: 82%;
-     padding: 3%;
-     background-color: #eff3f4;
+    max-width: 82%;
+    padding: 3%;
+    background-color: #eff3f4;
 }
 
 .preview_text, .preview_thumbnail {
@@ -260,9 +299,10 @@
     padding:5px;
     border-radius: 5px;
     -moz-border-radius: 5px;
-   font-weight: 300;
-   display: block;
-   text-align: center;
+    -webkit-border-radius: 5px;
+    font-weight: 300;
+    display: block;
+    text-align: center;
 }
 
 .tryout-button:hover, .tryout-button:active, .tryout-button:focus {
@@ -302,6 +342,10 @@
 
 .oa-link-hidden {
     display: none;
+}
+
+.nodisplay {
+    display: none !important;
 }
 
 .bold-list {
@@ -427,19 +471,33 @@ img#preview_page {
 
 .backlink-list {
     margin-left: 15px;
-    margin-top: 15px;
+    margin-top: 20px;
     font-size: 11px;
     cursor: pointer;
+    margin-bottom: 20px;
 
     a {
-        border-bottom: 1px solid $medium-blue;
+        border: 1px solid $medium-blue;
         color: $medium-blue;
+        padding: 5px;
+        border-radius: 5px;
+        -moz-border-radius: 5px;
+        -webkit-border-radius:5px;
         text-decoration: none;
 
         &:hover {
-            border-bottom: 2px solid $medium-blue;
+            background-color: $medium-blue;
+            color: white;
         }
     }
+}
+
+#author_bio_link {
+    color: $medium-blue;
+}
+
+#author_bio_link:active, #author_bio_link:focus {
+    text-decoration: none;
 }
 
 @media screen and (max-width: 1150px) {
@@ -497,7 +555,6 @@ img#preview_page {
         padding-left: 15px;
         padding-bottom: 15px;
         text-align: right;
-
 
         h4  {
             margin-top: 30px;
@@ -575,6 +632,7 @@ img#preview_page {
         padding: 5px;
         border-radius: 3px;
         -moz-border-radius: 3px;
+        -webkit-border-radius:3px;
     }
 
     .list_image {
@@ -644,8 +702,191 @@ img#preview_page {
 }
 
 @if $skin == "linkedcat" {
+
+    .list_metadata .list_links a {
+        color: $medium-blue;
+        border: 1px solid $medium-blue;
+    }
+
     #list_keywords, #list_basic_classification, #list_ddc {
         display: block;
         margin-bottom: 10px;
     }
+
+    .doi_outlink {
+        min-height: 20px;
+    }
+
+    .list_metadata {
+
+        .list_title {
+            font-weight: normal;
+            font-size: 16px;
+        }
+
+        .list_details, .doi_outlink {
+            font-size: 14px;
+        }
+
+        .list_links a.oa-link {
+            border-radius: 17px;
+            -moz-border-radius: 17px;
+            -webkit-border-radius: 17px;
+            padding: 5px 7px;
+        }
+    }
+
+    #list_abstract {
+
+        span:not(:empty):not(.highlight) {
+            display: block;
+            margin-top: 5px;
+
+            &::before, &::after {
+                content: "[...] "
+            }
+        }
+    }
+
+    div#preview_image {
+        display: none;
+    }
+
+    #list_area, #list_keywords, #list_basic_classification, #list_ddc, #list_abstract {
+        font-size: 14px;
+    }
+
+    .backlink-list {
+        margin-left: 15px;
+        margin-top: 15px;
+        font-size: 12px;
+        cursor: pointer;
+
+        a {
+            /*border-bottom: 1px solid $medium-blue;*/
+            color: $medium-blue;
+            display: block;
+            width: 250px;
+            border: 1px solid $medium-blue;
+            color: $medium-blue;
+            text-align: center;
+            margin: 20px 0 0 0;
+            text-decoration: none;
+            border-radius: 17px;
+            -moz-border-radius: 17px;
+            -webkit-border-radius:17px;
+            padding: 5px 3px;
+
+            &:hover {
+                border: 1px solid $medium-blue;
+            }
+        }
+    }
+
+    @media screen and (max-width: 1000px) {
+
+        .list_metadata {
+            .list_title, .list_details, .doi_outlink {
+                font-size: 12px;
+            }
+        }
+
+        #list_basic_classification, #list_keywords, #list_abstract, #list_area {
+            font-size: 12px;
+            max-width:100%;
+        }
+    }
+
+}
+
+@if $skin == "covis" {
+
+    #open-access-logo_list {
+        background-color: $open-access;
+        color: white;
+        border: 1px solid $open-access;
+        padding: 2px 4px;
+        border-radius: 5px;
+        -webkit-border-radius: 5px;
+        -moz-border-radius: 5px;
+        font-size: 10px;
+        vertical-align: top;
+        font-weight: $fontweight400;
+    }
+
+    .list_metadata {
+        padding-top: 10px;
+        margin-bottom: 0px;
+
+        .list_title {
+            font-size: 16px;
+            line-height:120%;
+            margin-bottom: 5px;
+        }
+    }
+
+    .doi_outlink, .list_metrics {
+        display: none;
+    }
+
+    #list_area {
+        display: block;
+        margin-top: 5px;
+    }
+
+    #list_abstract {
+        font-size: 14px;
+    }
+
+    .comments .comment-text {
+        font-size: 12px;
+        max-width: 82%;
+        background-color: #f1f1f1;
+        padding: 5px;
+        border-radius: 5px;
+        -moz-border-radius: 5px;
+        -webkit-border-radius:5px;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .comments {
+        margin-bottom: 5px;
+        margin-top: 10px;
+    }
+
+    .fa.fa-comment {
+        vertical-align: middle;
+        margin-right: 5px;
+        font-size: 14px;
+        color: $medium-blue;
+    }
+    #list_keywords {
+        margin-bottom: 5px;
+    }
+
+    #free-access-logo_list, #open-access-logo_list {
+        display: inline;
+        margin-right: 3px;
+    }
+
+    #list_keywords {
+
+        .keyword_tag {
+            font-weight: $fontweight800;
+        }
+    }
+
+    #list_area {
+
+        margin-top: 0px;
+
+        .area_tag {
+            font-weight: $fontweight800;
+        }
+    }
+    #list_keywords, #list_area {
+        font-size: 12px;
+    }
+
 }

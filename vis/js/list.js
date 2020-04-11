@@ -65,12 +65,12 @@ export const list = StateMachine.create({
             this.populateList();
             this.initListMouseListeners();
             if(config.initial_sort === null) {
-              sortBy(config.sort_options[0]);
+              list.sortBy(config.sort_options[0]);
             } else {
-              sortBy(config.initial_sort);
+              list.sortBy(config.initial_sort);
             }
             this.current_search_words = []
-            this.current_filter_param = ''
+            this.current_filter_param = config.filter_options[0];
             debounce(this.count_visible_items_to_header, config.debounce)()
         },
 
@@ -113,6 +113,10 @@ export const list = StateMachine.create({
     }
 });
 
+list.sortBy = function(field) {
+    sortBy(field);
+}
+
 list.drawList = function() {
     let self = this;
 
@@ -140,7 +144,7 @@ list.drawList = function() {
             }
             window.clearTimeout(timer);
             timer = window.setTimeout(function() {
-                debounce(self.filterList(event.target.value.split(" ")), config.debounce);
+                debounce(self.filterList(event.target.value.split(" "), this.current_filter_param), config.debounce);
             }, delay);
         
         });
@@ -148,7 +152,7 @@ list.drawList = function() {
     $("#searchclear").click(() => {
         $("#filter_input").val('');
         $("#searchclear").hide();
-        debounce(this.filterList([""]), config.debounce);
+        debounce(this.filterList([""], this.current_filter_param), config.debounce);
     });
 
     // Add sort button options
@@ -239,8 +243,11 @@ list.fit_list_height = function() {
         });
         paper_list_avail_height = available_height - $("#explorer_header").outerHeight(true);
     } else {
+        let title_height = $("#subdiscipline_title").outerHeight(true);
+        let title_image_height = $("#title_image").outerHeight(true) || 0;
+        
         paper_list_avail_height = 
-                $("#subdiscipline_title").outerHeight(true)
+                Math.max(title_height, title_image_height)
                     + $("#headstart-chart").outerHeight(true)
                     - $("#show_hide_button").outerHeight(true) 
                     - $("#explorer_options").outerHeight(true)
@@ -274,7 +281,7 @@ let addSortOptionDropdownEntry = function(sort_option, first_item) {
     }
     
     newEntry.on("click", () => {
-        sortBy(sort_option)
+        list.sortBy(sort_option)
         mediator.publish("record_action", config.localization[config.language][sort_option], "List", "sortBy", config.user_id, "listsort", null, "sort_option=" + sort_option)
         $('#curr-sort-type').text(config.localization[config.language][sort_option])
         $('.sort_entry').removeClass('active');
@@ -306,7 +313,7 @@ let addSortOptionButton = function(parent, sort_option, selected) {
 
     // Event listeners
     $("#sort_" + sort_option).change(function() {
-        sortBy(sort_option);
+        list.sortBy(sort_option);
         mediator.publish("record_action", config.localization[config.language][sort_option], "List", "sortBy",
             config.user_id, "listsort", null, "sort_option=" + sort_option);
     });
@@ -323,6 +330,7 @@ list.addFilterOptionDropdownEntry = function (filter_option, first_item) {
     }
     
     newEntry.on("click", () => {
+        this.current_filter_param = filter_option;
         this.filterList(undefined, filter_option)
         $('#curr-filter-type').text(config.localization[config.language][filter_option])
         $('.filter_entry').removeClass('active');
@@ -432,6 +440,9 @@ list.filterListByKeyword = function(keyword) {
     
     d3.selectAll("#list_holder")
         .filter(function(x) {
+            if (typeof x.subject_orig === "undefined") {
+                x.subject_orig = "";
+            }
             let keywords = x.subject_orig.split("; ");
             let contains_keyword = keywords.includes(keyword);
             return contains_keyword
@@ -458,6 +469,11 @@ list.updateVisualDistributions = function(attribute, context) {
 list.populateMetaData = function(nodes) {
     nodes[0].forEach(function(elem) {
         var list_metadata = d3.select(elem).select(".list_metadata");
+        
+        d3.select(elem).select(".list_anchor")
+            .attr("id", function(d) {
+                return d.safe_id;
+            })
 
         list_metadata.select(".list_title")
             .attr("class", function(d) {
@@ -487,7 +503,21 @@ list.populateMetaData = function(nodes) {
                     return "none"
                 }
             })
-
+        
+        if(config.show_tags) {    
+            d3.select(elem).select("#list_tags")
+                    .html(function (d) {
+                        let return_tags = "";
+                        let tags = d.tags.split(/, |,/g);
+                        for (let tag of tags) {
+                            if(tag !== "") {
+                                return_tags += '<div class="tag">' + tag + '</div>';
+                            }
+                        }
+                        return return_tags;
+                    });
+        }
+        
         list_metadata.select("#paper_list_title")
             .html(function(d) {
                 return d.title;
@@ -510,6 +540,13 @@ list.populateMetaData = function(nodes) {
         list_metadata.select("#open-access-logo_list")
             .style("display", function(d) {
                 if (d.oa === false) {
+                    return "none";
+                }
+            });
+        
+        list_metadata.select("#free-access-logo_list")
+            .style("display", function(d) {
+                if (d.free_access === false) {
                     return "none";
                 }
             });
@@ -613,8 +650,28 @@ list.populateMetaData = function(nodes) {
                 mediator.publish("bookmark_removed", d);
                 d3.event.stopPropagation();
             });
+        
+        if(config.show_resulttype) {
+            let resulttype_div = 
+                    d3.select(elem).select("#list_resulttype")
+                        .classed("nodisplay", false)
+            
+            resulttype_div.select("#resulttype_tag").text(config.localization[config.language].resulttype_label + ":");
+            resulttype_div.select("#resulttype_text").text(function(d) { return d.resulttype; } )
+        }
+        
     });
 };
+
+list.createComments = function(nodes) {
+    nodes[0].forEach((elem) => {
+        let current_comment = 
+                d3.select(elem).select("#list_comments")
+                    .classed("nodisplay", (d) => { return d.comments === ""; } )
+        
+        current_comment.select("#comment").text((d) => { return d.comments })
+    })
+}
 
 list.createAbstracts = function(nodes) {
     nodes[0].forEach((elem) => {
@@ -723,9 +780,18 @@ list.populateList = function() {
     var paper_nodes = this.getPaperNodes(list_data);
     this.populateMetaData(paper_nodes);
     this.createAbstracts(paper_nodes);
+    if(config.show_comments) {
+        this.createComments(paper_nodes);
+    }
     this.populateReaders(paper_nodes);
     this.populateExternalVis(paper_nodes);
 };
+
+list.scrollToEntry = function(safe_id) {
+    $("#papers_list").animate({
+        scrollTop: $('#' + safe_id).offset().top - $('#papers_list').offset().top
+    }, 0);
+}
 
 list.filterList = function(search_words, filter_param) {
     if (search_words === undefined) {
@@ -735,7 +801,7 @@ list.filterList = function(search_words, filter_param) {
     }
 
     if (filter_param === undefined) {
-        filter_param = this.current_filter_param     
+        filter_param = this.current_filter_param;     
     } else {
         mediator.publish("record_action", filter_param, "List", "filter", config.user_id, "filter_list", null, "filter_param=" + filter_param);
     }
@@ -752,39 +818,59 @@ list.filterList = function(search_words, filter_param) {
     // Full list of items in the map/list
     let all_list_items = d3.selectAll("#list_holder");
     let all_map_items = d3.selectAll(".paper");
-    //TODO why not mediator.current_circle
-    let current_circle = d3.select(mediator.current_zoom_node);
-
-    // Find all the list items, that without any filtering should be in the view
-    let normally_visible_list_items = all_list_items
-        .filter(function(d) {
-            if (mediator.is_zoomed === true) {
-                if (config.use_area_uri && mediator.current_enlarged_paper === null) {
-                    return current_circle.data()[0].area_uri == d.area_uri;
-                } else if (config.use_area_uri && mediator.current_enlarged_paper !== null) {
-                    return mediator.current_enlarged_paper.id == d.id;
-                } else {
-                    return current_circle.data()[0].title == d.area;
-                }
-            } else {
-                return true;
-            }
-        });
-
-    // Find items that, without any filtering, should be in the view
-    let normally_visible_map_items = all_map_items
-        .filter(function(d) {
-            if (mediator.is_zoomed === true) {
+    
+    let normally_visible_list_items = all_list_items;
+    let normally_visible_map_items = all_map_items;
+    
+    if (!config.is_streamgraph && mediator.is_zoomed) {
+        //TODO why not mediator.current_circle
+        let current_circle = d3.select(mediator.current_zoom_node);
+        
+        // Find all the list items, that without any filtering should be in the view
+        normally_visible_list_items = 
+            all_list_items
+                .filter(function(d) {
+                    if (config.use_area_uri && mediator.current_enlarged_paper === null) {
+                        return current_circle.data()[0].area_uri == d.area_uri;
+                    } else if (config.use_area_uri && mediator.current_enlarged_paper !== null) {
+                        return mediator.current_enlarged_paper.id == d.id;
+                    } else {
+                        return current_circle.data()[0].title == d.area;
+                    }
+                });
+                
+        // Find items that, without any filtering, should be in the view
+        normally_visible_map_items = all_map_items
+            .filter(function(d) {
                 if (config.use_area_uri) {
                     return current_circle.data()[0].area_uri == d.area_uri;
                 } else {
                     return current_circle.data()[0].title == d.area;
                 }
-            } else {
-                return true;
-            }
-        });
-
+            });
+    } else if (config.is_streamgraph && mediator.current_stream !== null) {
+        
+        // Find all the list items, that without any filtering should be in the view
+        normally_visible_list_items = 
+            all_list_items
+                .filter(function(d) {
+                    if (mediator.current_enlarged_paper !== null) {
+                        return mediator.current_enlarged_paper.id == d.id;
+                    } else {
+                        return d.subject_orig.split("; ").includes(mediator.current_stream);
+                    }
+                });
+                
+        normally_visible_map_items = all_map_items
+            .filter(function(d) {
+                if (mediator.current_enlarged_paper !== null) {
+                    return mediator.current_enlarged_paper.id == d.id;
+                } else {
+                    return d.subject_orig.split("; ").includes(mediator.current_stream);
+                }
+            });
+    }
+    
     //Find if any paper was selected previously
     let selected_list_items = normally_visible_list_items
         .filter(function(d) {
@@ -819,14 +905,22 @@ list.filterList = function(search_words, filter_param) {
 
 // Returns true if document has parameter or if no parameter is passed
 list.findEntriesWithParam = function (param, d) {
-    if (param === 'open_access') {
-        return d.oa
-    } else if (param === 'publication') {
-        return d.resulttype === 'publication'
-    } else if (param === 'dataset') {
-        return d.resulttype === 'dataset'
+    if(typeof config.filter_field === "undefined" || config.filter_field === null) {
+        if (param === 'open_access') {
+            return d.oa
+        } else if (param === 'publication') {
+            return d.resulttype === 'publication'
+        } else if (param === 'dataset') {
+            return d.resulttype === 'dataset'
+        } else {
+            return true
+        }
     } else {
-        return true
+       if (param === "all") {
+           return true;
+       } else {
+           return d[config.filter_field] === param;
+       }
     }
     
 }
@@ -854,6 +948,8 @@ list.hideEntriesByWord = function(object, search_words) {
             let year = d.year.toString();
             let word_found = true;
             let keywords = (d.hasOwnProperty("subject_orig")) ? (d.subject_orig.toString().toLowerCase()) : ("");
+            let tags = (d.hasOwnProperty("tags")) ? (d.tags.toString().toLowerCase()) : ("");
+            let comments = (d.hasOwnProperty("comments")) ? (d.comments.toString().toLowerCase()) : ("");
             let i = 0;
             while (word_found && i < search_words.length) {
                 word_found = (abstract.indexOf(search_words[i]) !== -1 ||
@@ -861,7 +957,9 @@ list.hideEntriesByWord = function(object, search_words) {
                     authors.indexOf(search_words[i]) !== -1 ||
                     journals.indexOf(search_words[i]) !== -1 ||
                     year.indexOf(search_words[i]) !== -1 ||
-                    keywords.indexOf(search_words[i]) !== -1
+                    keywords.indexOf(search_words[i]) !== -1 ||
+                    tags.indexOf(search_words[i]) !== -1 ||
+                    comments.indexOf(search_words[i]) !== -1
                 );
                 i++;
             }
@@ -1139,7 +1237,11 @@ list.setBacklink = function(d) {
                                 .attr("class", "underline")
                                 .text(function() {
                                     if(config.is_streamgraph) {
-                                        return config.localization[config.language].backlink_list_streamgraph;
+                                        if(mediator.current_stream === null) {
+                                            return config.localization[config.language].backlink_list_streamgraph;
+                                        } else {
+                                            return config.localization[config.language].backlink_list_streamgraph_stream_selected;
+                                        }
                                     } else {
                                         return config.localization[config.language].backlink_list;
                                     }
@@ -1312,7 +1414,7 @@ list.writePopup = function(pdf_url) {
     setTimeout(function() {
         $("#pdf_iframe")
             .attr("src", function() {
-                let viewer = config.server_url + "services/pdfjs-hypothesis/web/viewer.html";
+                let viewer = config.server_url + "services/displayPDF.php";
                 if(config.use_hypothesis) {
                     return viewer + "?file=" + pdf_url; //#view=FitH
                 } else {
@@ -1403,7 +1505,9 @@ list.populateOverlay = function(d) {
 
                 var showError = function() {
                     var pdf_location_link = (config.service === "openaire") ? (this_d.link) : (this_d.outlink);
-                    $("#status").html("Sorry, we were not able to retrieve the PDF for this publication. You can get it directly from <a href=\"" + pdf_location_link + "\" target=\"_blank\">this website</a>.");
+                    $("#status").html(config.localization[config.language].pdf_not_loaded 
+                            + " <a href=\"" + pdf_location_link + "\" target=\"_blank\">" 
+                            + config.localization[config.language].pdf_not_loaded_linktext + "</a>.");
                     $("#status").show();
                 }
 

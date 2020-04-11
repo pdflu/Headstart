@@ -1,20 +1,16 @@
+<?php
+    include 'config.php';
+?>
 <!DOCTYPE html>
 <html>
 
     <head>
-        <link type="text/css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-        <link type="text/css" rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
-
-        <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css?family=Josefin+Sans:600" rel="stylesheet"> 
-        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
-        <link type="text/css" rel="stylesheet" href="options.css">
+        <?php include('head_standard.php') ?>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.13.0/js/md5.min.js" integrity="sha256-qlDpLxKXa1lzPjJ5vbWLDWbxuHT8d/ReH4E6dBDRRoA=" crossorigin="anonymous"></script>
     </head>
 
-    <body class="waiting-page">
-        <div class="waiting-page-img">
+    <body class="waiting-page waiting-page-img">
+        <div>
         <div class="waiting-box">
             <div>
                 <p class="waiting-title"><span id="h-label"></span> über <span id="search_term"></span> wird gerade erstellt</p>
@@ -28,54 +24,55 @@
         </div>
 
         <script>
-            var post_data;
-<?php
+            var post_data, unique_id;
+            var server_url = "<?php echo $WEBSITE_PATH . $HEADSTART_PATH; ?>server/";
+            var search_params = new URLSearchParams(window.location.search);
+            var search_aborted = false;
+<?php 
 if(!empty($_POST)) {
     $post_array = $_POST;
     $date = new DateTime();
     $post_array["today"] = $date->format('Y-m-d');
-
+    
     $post_data = json_encode($post_array);
 
     echo "post_data = " . $post_data . ";\n";
 }
 ?>
-            $(document).ready(function () {
+        $(document).ready(function () {
                 if (window.post_data) {
                     post_data = window.post_data;
                 }
-                let search_params = new URLSearchParams(window.location.search)
+                
+                unique_id = md5(JSON.stringify(post_data));
+                post_data.unique_id = unique_id;
+        
                 if (Array.from(search_params).length > 0) {
-                    $("#search_term").text(post_data.q)
+                    $("#search_term").text(getSearchTermShort())
+                    $("#search_term").attr("title", post_data.q);
                     $("#h-label").text(function () {
-                        return ((post_data.vis_type === "overview")?("Ihre Knowledge Map"):("Ihr Zeitstrahl"))
+                        return ((post_data.vis_type === "overview")?("Ihre Knowledge Map"):("Ihr Streamgraph"))
                     })
-                    doSubmit(search_params, search_params.get("service_url"), search_params.get("service"));
+                    doSubmit();
                 } else {
                     showErrorCreation();
                 }
-            })
+            });
+            
+            var getSearchTermShort = function () {
+                return post_data.q.length > 115 ? post_data.q.substr(0, 115) + "..." : post_data.q;
+            }
 
-            var doSubmit = function (params, service_url, service_name) {
-                post_data.author_id = params.get("author_id");
-                post_data.doc_count = params.get("doc_count");
-                post_data.living_dates = params.get("living_dates");
-                post_data.image_link = params.get("image_link");
-
-                var openInThisWindow = function (data) {
+            var doSubmit = function () {
+                post_data.author_id = search_params.get("author_id");
+                post_data.doc_count = search_params.get("doc_count");
+                post_data.living_dates = search_params.get("living_dates");
+                post_data.image_link = search_params.get("image_link");
+                
+                let processResult = function(data) {
                     console.log(data)
                     if (data.status === "success") {
-                        $("#progressbar").progressbar("option", "value", 100);
-                        window.clearTimeout(progessbar_timeout);
-
-                        var file = data.id;
-                        window.location.replace("headstart.php?query=" + data.query
-                                + "&file=" + file
-                                + "&service=" + params.get("service")
-                                + "&service_name=" + service_name
-                                + "&visualization_mode=" + params.get("visualization_mode")
-                                + "&visualization_type=" + post_data.vis_type)
-                        return false;
+                        openInThisWindow();
                     } else {
                         showErrorCreation();
                     }
@@ -84,20 +81,53 @@ if(!empty($_POST)) {
                 $.ajax({
                     // make an AJAX request
                     type: "POST",
-                    url: service_url,
+                    url: search_params.get("service_url"),
                     data: post_data,
-                    success: openInThisWindow,
+                    timeout: (10 * 60 * 1000),
+                    success: processResult,
                     error: function (error) {
                         showErrorBackend(error);
                     }
                 });
             }
+            
+            function openInThisWindow() {
+                $("#progressbar").progressbar("option", "value", 100);
+                window.clearTimeout(progessbar_timeout);
+
+                var file = unique_id;
+                window.location.replace("headstart.php?query=" + post_data.q
+                        + "&file=" + file
+                        + "&service=" + search_params.get("service")
+                        + "&service_name=" + search_params.get("service")
+                        + "&vis_mode=" + search_params.get("vis_mode")
+                        + "&vis_type=" + post_data.vis_type)
+                return false;
+            }
+            
+            function fallbackCheck() {
+                $.getJSON(server_url + "services/getLastVersion.php?vis_id=" + unique_id,
+                    function(output) {
+                        if (output.status === "success") {
+                            search_aborted = true;
+                            openInThisWindow();
+                        }
+                    });
+            }
+            
+            function clearFallbackInterval () {
+                if(check_fallback_interval !== null) {
+                    window.clearInterval(check_fallback_interval);
+                }
+            }
 
             var showErrorCreation = function () {
+                clearFallbackInterval();
+                
                 clearTimeout(progessbar_timeout);
                 $("#progressbar").hide();
                 $(".waiting-description").hide();
-                $(".waiting-title").html('Bei der Erstellung <span>' + ((post_data.vis_type === "overview")?("Ihrer Knowledge Map"):("Ihres Zeitstrahls")) + '</span> über <span>' + post_data.q + '</span> ist ein Fehler aufgetreten.');
+                $(".waiting-title").html('Bei der Erstellung <span>' + ((post_data.vis_type === "overview")?("Ihrer Knowledge Map"):("Ihres Streamgraphs")) + '</span> über <span title="' + post_data.q + '">' + getSearchTermShort() + '</span> ist ein Fehler aufgetreten.');
                 $("#progress").html('Pardon! Es ist leider etwas schief gelaufen. Wahrscheinlich gibt es zu Ihrer Suchanfrage keine Dokumente. Bitte versuchen Sie es mit einem anderen Stichwort erneut.'
                        
             
@@ -105,19 +135,30 @@ if(!empty($_POST)) {
                     +'<button class="search-btn shadow">'
                         +'Neues Stichwort ausprobieren'
                     +'</button></a>'
-            +'<div style="text-align: center; margin-top: 2%;">'
-                +'<a style="border-bottom: 1px solid #2856a3; text-decoration: none;" href="browse.php" target="_blank">Browse Knowledge Maps zu ausgewählten Themen</a>'
+            +'<div style="text-align: center; margin-top: 5%;">'
+                +'<a style="border-bottom: 1px solid #2856a3; text-decoration: none;" href="browse.php">Entdecken Sie Knowledge Maps zu Disziplinen/Themen</a>'
                                 +'</div>');
             }
 
             var showErrorBackend = function (error) {
+                //do not carry out if request is aborted
+                if(search_aborted)
+                    return;
+
+                clearFallbackInterval();
+                
                 clearTimeout(progessbar_timeout);
                 $("#progressbar").hide();
                 $(".waiting-description").hide();
-                $(".waiting-title").html('Bei der Erstellung <span>' + ((post_data.vis_type === "overview")?("Ihrer Knowledge Map"):("Ihres Zeitstrahls")) + '</span> über <span>' + post_data.q + '</span> ist ein Fehler aufgetreten.');
-                $("#progress").html(
-                        'Pardon! Es ist leider etwas schief gelaufen.<br><a href=\"index.php\">Bitte versuchen Sie es in ein paar Minuten noch einmal</a>.'
-                        )
+                $(".waiting-title").html('Bei der Erstellung <span>' + ((post_data.vis_type === "overview")?("Ihrer Knowledge Map"):("Ihres Streamgraphs")) + '</span> über <span title="' + post_data.q + '">' + getSearchTermShort() + '</span> ist ein Fehler aufgetreten.');
+                if(error.status === 0) {
+                    $("#progress")
+                            .html('Die Verbindung zum Internet wurde unterbrochen oder die Verbindung wurde zurückgesetzt. Sie können es noch einmal versuchen, indem Sie <a class="underline" style="cursor:pointer" onClick="window.location.reload();">die Seite neu laden</a>.');
+                } else {
+                    $("#progress").html(
+                            'Pardon! Es ist leider etwas schief gelaufen.<br><a href=\"index.php\">Bitte versuchen Sie es in ein paar Minuten noch einmal</a>.'
+                            )
+                }
                 console.log(error)
             }
 
@@ -135,7 +176,7 @@ if(!empty($_POST)) {
                 progessbar_timeout = window.setTimeout(tick_function, tick_interval * milliseconds);
 
                 if (value >= 100) {
-                    $("#progress").html('Die Erstellung <span>' + ((post_data.vis_type === "overview")?("Ihrer Knowledge Map"):("Ihres Zeitstrahls")) + '</span> benötigt mehr Zeit als angenommen. Bitte haben Sie noch ein wenig Geduld.')
+                    $("#progress").html('Die Erstellung <span>' + ((post_data.vis_type === "overview")?("Ihrer Knowledge Map"):("Ihres Streamgraphs")) + '</span> benötigt mehr Zeit als angenommen. Bitte haben Sie noch ein wenig Geduld.')
 
                     $("#progressbar").progressbar("value", 5);
 
@@ -148,6 +189,11 @@ if(!empty($_POST)) {
             var milliseconds = 500;
 
             var progessbar_timeout = window.setTimeout(tick_function, tick_interval * milliseconds);
+            var check_fallback_interval = null;
+            var check_fallback_timeout = 
+            window.setTimeout(function () {
+                                check_fallback_interval = window.setInterval(fallbackCheck, 4000);
+                            }, 10000);
         </script>
 
     </body>
