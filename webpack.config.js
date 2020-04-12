@@ -52,7 +52,7 @@ const common = {
             'mediator': path.resolve(__dirname, 'vis/js/mediator.js'),
             'io' : path.resolve(__dirname, 'vis/js/io.js'),
             'canvas' : path.resolve(__dirname, 'vis/js/canvas.js'),
-            'streamgraph' : path.resolve(__dirname, 'vis/js/streamgraph.js',
+            'streamgraph' : path.resolve(__dirname, 'vis/js/streamgraph.js'),
             'scale' : path.resolve(__dirname, 'vis/js/scale.js')
         },
     },
