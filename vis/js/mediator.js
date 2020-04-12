@@ -6,7 +6,7 @@ import { BubblesFSM } from 'bubbles';
 import { list } from 'list';
 import { io } from 'io';
 import { canvas } from 'canvas';
-import { scale } from './scale';
+import { scale } from 'scale';
 import { streamgraph } from 'streamgraph';
 
 const multiplesTemplate = require('templates/multiples.handlebars');
